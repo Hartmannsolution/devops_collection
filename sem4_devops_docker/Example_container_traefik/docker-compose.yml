@@ -1,0 +1,15 @@
+version: "3.1"
+
+services:
+  whoami:
+    image: "containous/whoami"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.SOME_SUB_DOMAIN.rule=Host(`SOME_SUB_DOMAIN.MY_DOMAIN_NAME.com`)"
+      - "traefik.http.routers.SOME_SUB_DOMAIN.entrypoints=websecure"
+      - "traefik.http.routers.SOME_SUB_DOMAIN.tls.certresolver=myresolver"
+    restart: always
+networks:
+  default:
+    external:
+      name: dev

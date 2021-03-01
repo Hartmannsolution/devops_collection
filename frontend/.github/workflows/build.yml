@@ -1,0 +1,80 @@
+# This workflow will do a clean install of node dependencies, build the source code and run tests across different versions of node
+# For more information see: https://help.github.com/actions/language-and-framework-guides/using-nodejs-with-github-actions
+
+name: End-to-end tests
+
+on:
+  push:
+    branches:
+      - master
+      - main
+jobs:
+  cypress-run:
+    runs-on: ubuntu-18.04
+    steps:
+      - name: Checkout
+        uses:
+          actions/checkout@v2
+          # Install NPM dependencies, cache them correctly
+          # and run all Cypress tests
+      - name: Cypress run
+        uses: cypress-io/github-action@v2
+        env:
+          TEST_USER: ${{ secrets.TEST_USER }}
+          TEST_PASSWORD: ${{ secrets.TEST_PASSWORD }}
+        with:
+          start: npm run start:ci
+          wait-on: 'http://localhost:3000'
+          command: npm run cy:ci:test
+      - name: Upload test results
+        uses: actions/upload-artifact@v2
+        with:
+          name: coverage
+          path: coverage/
+  sonarcloud:
+    needs: cypress-run
+    runs-on: ubuntu-18.04
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          # Disabling shallow clone is recommended for improving relevancy of reporting
+          fetch-depth: 0
+      - name: Download test results
+        uses: actions/download-artifact@v2
+        with:
+          name: coverage
+          path: coverage
+      - name: SonarCloud Scan
+        uses: sonarsource/sonarcloud-github-action@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+  build:
+    needs: cypress-run
+    runs-on: ubuntu-18.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: install node module
+        run: npm ci
+      - name: Build the website
+        run: npm run build
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+
+      - name: Login to DockerHub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Build and push
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: linux/amd64,linux/arm64 # Remember image in dockerfile should also support these platforms
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/${{ secrets.DOCKERHUB_IMAGENAME }}:latest,${{ secrets.DOCKERHUB_USERNAME }}/${{ secrets.DOCKERHUB_IMAGENAME }}:${{ github.sha }}

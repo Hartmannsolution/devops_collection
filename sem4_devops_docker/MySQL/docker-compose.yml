@@ -1,0 +1,18 @@
+version: "3.1"
+
+services:
+  mysql:
+    image: mysql:8.0.19
+    container_name: mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: password123
+    volumes:
+      - ./MySQL_Scripts:/docker-entrypoint-initdb.d/
+      - data:/var/lib/mysql
+    networks:
+      - dev
+volumes:
+  data:
+networks:
+  dev:
+    external: true

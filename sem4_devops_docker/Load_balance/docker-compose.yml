@@ -1,0 +1,17 @@
+version: "2.2"
+
+services:
+  # EXAMPLE CONTAINER
+  whoami:
+    image: "containous/whoami"
+    scale: 2 # Ændre denne værdi for x antal containers af denne type
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.CHANGEME.rule=Host(`example.domain.com`)"
+      - "traefik.http.routers.CHANGEME.entrypoints=websecure"
+      - "traefik.http.routers.CHANGEME.tls.certresolver=myresolver"
+    networks:
+      - dev
+networks:
+  dev:
+    external: true

@@ -1,0 +1,60 @@
+version: '2'
+
+services:
+  nginx-proxy:
+    image: jwilder/nginx-proxy
+    container_name: nginx-proxy
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - conf:/etc/nginx/conf.d
+      - vhost:/etc/nginx/vhost.d
+      - html:/usr/share/nginx/html
+      - dhparam:/etc/nginx/dhparam
+      - certs:/etc/nginx/certs:ro
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+    labels:
+      - "com.centurylinklabs.watchtower.enable=false"
+    restart: always
+
+  letsencrypt:
+    image: jrcs/letsencrypt-nginx-proxy-companion
+    container_name: nginx-proxy-le
+    volumes_from:
+      - nginx-proxy
+    volumes:
+      - certs:/etc/nginx/certs:rw
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    labels:
+      - "com.centurylinklabs.watchtower.enable=false"
+    restart: always
+
+  watchtower:
+    image: containrrr/watchtower
+    container_name: watchtower
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: --cleanup #--debug for verbose logging, --interval xx for custom interval in seconds
+    restart: always
+
+  ii:
+    image: "containous/whoami"
+    container_name: "simple-pp"
+    environment:
+      - "VIRTUAL_HOST=ii.sarson.codes"
+      - "LETSENCRYPT_HOST=ii.sarson.codes"
+
+  spark:
+    image: "alexandersarson/sparkjava:v3"
+    container_name: "spark"
+    environment:
+      - "VIRTUAL_HOST=spark.sarson.codes"
+      - "LETSENCRYPT_HOST=spark.sarson.codes"
+
+volumes:
+  conf:
+  vhost:
+  html:
+  dhparam:
+  certs:
